@@ -3,28 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Həftəlik Planlama — Front‑Only (GitHub JSON + Secure Local Cache)</title>
+  <title>Həftəlik Planlama — Front-Only (GitHub JSON + Secure Local Cache)</title>
   <style>
     :root{ --card:#ffffff; --muted:#475569; --brand:#4f46e5; --ring:rgba(79,70,229,.25); --text:#0f172a; --border:#e5e7eb }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
-    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background:linear-gradient(135deg,#74ebd5 0%, #9face6 100%); padding:clamp(12px,2.5vw,24px); display:flex; align-items:center; justify-content:center; color:var(--text) }
+    *{ box-sizing:border-box } html,body{ height:100% }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+      background:linear-gradient(135deg,#74ebd5 0%, #9face6 100%); padding:clamp(12px,2.5vw,24px);
+      display:flex; align-items:center; justify-content:center; color:var(--text) }
     .app{ width:min(1200px,100%) }
     .shell{ background:var(--card); border-radius:16px; box-shadow:0 20px 40px rgba(2,6,23,.15); overflow:hidden; border:1px solid var(--border) }
 
-    .topbar{ display:flex; gap:12px; align-items:center; justify-content:space-between; padding:clamp(12px,2vw,18px); border-bottom:1px solid var(--border); flex-wrap:wrap }
+    .topbar{ display:flex; gap:12px; align-items:center; justify-content:space-between;
+      padding:clamp(12px,2vw,18px); border-bottom:1px solid var(--border); flex-wrap:wrap }
     .title{ font-weight:800; font-size:clamp(18px,2.4vw,24px); letter-spacing:.2px; display:flex; gap:8px; align-items:center }
     .controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
-    .btn{ appearance:none; border:1px solid var(--border); background:#fff; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600; line-height:1; transition:.2s box-shadow,.2s transform }
-    .btn:hover{ box-shadow:0 0 0 4px var(--ring) }
-    .btn:active{ transform:translateY(1px) }
+    .btn{ appearance:none; border:1px solid var(--border); background:#fff; padding:10px 12px; border-radius:10px;
+      cursor:pointer; font-weight:600; line-height:1; transition:.2s box-shadow,.2s transform }
+    .btn:hover{ box-shadow:0 0 0 4px var(--ring) } .btn:active{ transform:translateY(1px) }
     .btn.primary{ background:var(--brand); border-color:var(--brand); color:#fff }
     .btn.ghost{ background:transparent }
     .btn.icon{ width:40px; height:40px; display:grid; place-items:center; padding:0; border-radius:999px }
     .week-meta{ display:flex; gap:10px; align-items:center; color:var(--muted); font-weight:600 }
     .badge{ padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:#f8fafc; color:#0b3b69 }
 
-    .notice{ padding:10px 14px; margin:12px 16px 0; border:1px dashed var(--border); border-radius:10px; color:#0b3b69; background:#f0f9ff; display:flex; gap:8px; align-items:center }
+    .notice{ padding:10px 14px; margin:12px 16px 0; border:1px dashed var(--border); border-radius:10px;
+      color:#0b3b69; background:#f0f9ff; display:flex; gap:8px; align-items:center }
 
     .slider{ position:relative }
     .track{ display:flex; gap:12px; padding:clamp(10px,1.8vw,18px); overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch }
@@ -33,14 +36,16 @@
     .nav.left{ left:8px } .nav.right{ right:8px }
     .nav .btn{ border-radius:999px; padding:10px 12px; box-shadow:0 6px 20px rgba(2,6,23,.15); backdrop-filter:blur(6px) }
 
-    .day{ border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; min-height:220px; min-width:min(92vw,360px); scroll-snap-align:start; background:#fff }
+    .day{ border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column;
+      min-height:220px; min-width:min(92vw,360px); scroll-snap-align:start; background:#fff }
     @media (min-width:640px){ .day{ min-width:360px } }
     @media (min-width:1024px){ .day{ min-width:380px } }
     .day-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px }
     .day h3{ margin:0; font-size:clamp(14px,1.5vw,16px); color:#111827; font-weight:800 }
     .day .date{ color:var(--muted); font-size:12px; font-weight:600 }
     .tasks{ display:flex; flex-direction:column; gap:8px; margin-top:6px; flex:1; min-height:48px }
-    .task{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px; border:1px dashed var(--border); border-radius:10px; background:#fff; min-height:40px }
+    .task{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px; border:1px dashed var(--border);
+      border-radius:10px; background:#fff; min-height:40px }
     .task.done{ opacity:.9; text-decoration:line-through; background:#f0fdf4; border-style:solid; border-color:#bbf7d0 }
     .task-left{ display:flex; align-items:center; gap:8px; min-width:0 }
     .task input[type="checkbox"]{ width:18px; height:18px }
@@ -50,8 +55,17 @@
     .add-inline input{ flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px }
     .add-inline button{ padding:10px 12px }
     .empty{ color:var(--muted); font-size:13px; text-align:center; padding:12px; border:1px dashed var(--border); border-radius:10px }
-    .footer{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; gap:8px; flex-wrap:wrap }
+    .footer{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
+      color:var(--muted); font-size:12px; gap:8px; flex-wrap:wrap }
     .kbd{ padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:#f8fafc; font-size:12px }
+
+    dialog.modal{ border:none; padding:0; max-width:min(560px,92vw) }
+    dialog.modal::backdrop{ background:rgba(15,23,42,.35) }
+    .modal-card{ background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,.2) }
+    .modal-head{ padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center }
+    .modal-body{ padding:16px; display:grid; gap:10px }
+    .input{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; width:100% }
+    .help{ font-size:12px; color:#64748b }
   </style>
 </head>
 <body>
@@ -72,7 +86,7 @@
 
       <div id="notice" class="notice" hidden>
         <strong>ℹ️</strong>
-        <span>Hazırda <b>read-only</b> rejimdədir. Yazmaq üçün GitHub ayarlarını bir dəfə daxil et — token və repo parametrləri <b>yerli şifrəli keşdə</b> saxlanacaq.</span>
+        <span>Hazırda <b>read-only</b> rejimdədir. Yazmaq üçün GitHub ayarlarını bir dəfə daxil et — token və repo parametrləri <b>şifrəli local cache</b>-də saxlanacaq.</span>
       </div>
 
       <div class="slider">
@@ -96,27 +110,12 @@
         <button class="btn" value="close">Bağla</button>
       </div>
       <div class="modal-body">
-        <label>
-          <div class="help">Owner (istifadəçi və ya təşkilat)</div>
-          <input id="ghOwner" class="input" placeholder="misal: camalcavadov" required />
-        </label>
-        <label>
-          <div class="help">Repo (publik)</div>
-          <input id="ghRepo" class="input" placeholder="misal: weekly-planner-data" required />
-        </label>
-        <label>
-          <div class="help">Fayl yolu</div>
-          <input id="ghPath" class="input" value="base.json" required />
-        </label>
-        <label>
-          <div class="help">Branch</div>
-          <input id="ghBranch" class="input" value="main" required />
-        </label>
-        <label>
-          <div class="help">Personal Access Token (scope: <code>public_repo</code>)</div>
-          <input id="ghToken" class="input" type="password" placeholder="ghp_..." required />
-        </label>
-        <div class="help">Token və ayarlar <b>şifrələnmiş olaraq</b> localStorage-də saxlanacaq ki, növbəti girişdə yenidən istənməsin. İstəsən silə bilərsən.</div>
+        <label><div class="help">Owner (istifadəçi və ya təşkilat)</div><input id="ghOwner" class="input" required /></label>
+        <label><div class="help">Repo (publik)</div><input id="ghRepo" class="input" required /></label>
+        <label><div class="help">Fayl yolu</div><input id="ghPath" class="input" value="base.json" required /></label>
+        <label><div class="help">Branch</div><input id="ghBranch" class="input" value="main" required /></label>
+        <label><div class="help">Personal Access Token (scope: <code>public_repo</code> və ya özəl repoda <code>repo</code>)</div><input id="ghToken" class="input" type="password" placeholder="ghp_..." required /></label>
+        <div class="help">Ayarlar <b>şifrələnmiş</b> halda localStorage-də saxlanır; istənilən vaxt təmizləyə bilərsiniz.</div>
         <div style="display:flex; gap:8px; margin-top:6px">
           <button id="saveToken" class="btn primary">Yadda saxla</button>
           <button class="btn" value="close">Ləğv et</button>
@@ -126,28 +125,20 @@
   </dialog>
 
   <script>
-    // ================== LOCAL SECURE CACHE (Crypto + localStorage) ==================
-    // Sadelik üçün Web Crypto ilə token/parametrləri şifrələyib localStorage-də saxlayırıq.
-    // Bu, cihazda qalır; istəsən Təmizlə düyməsi ilə silə bilərsən.
-
+    /* ================== ŞİFRƏLİ LOCAL CACHE ================== */
     const LS_KEY = 'planner.enc.v1';
-    const ENC_SALT = 'planner-static-salt-v1'; // production-da dəyişmək olar
-
+    const ENC_SALT = 'planner-static-salt-v1';
     async function getKey(pass){
       const enc = new TextEncoder();
       const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
       return crypto.subtle.deriveKey(
         { name:'PBKDF2', salt:new TextEncoder().encode(ENC_SALT), iterations:100_000, hash:'SHA-256' },
-        baseKey,
-        { name:'AES-GCM', length:256 },
-        false,
-        ['encrypt','decrypt']
+        baseKey,{ name:'AES-GCM', length:256 },false,['encrypt','decrypt']
       );
     }
-
     async function encryptJSON(obj){
       const iv = crypto.getRandomValues(new Uint8Array(12));
-      const key = await getKey(location.host); // host-a bağlı açar
+      const key = await getKey(location.host);
       const data = new TextEncoder().encode(JSON.stringify(obj));
       const buf = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
       const out = new Uint8Array(iv.byteLength + buf.byteLength);
@@ -156,19 +147,18 @@
     }
     async function decryptJSON(b64){
       const raw = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
-      const iv = raw.slice(0,12); const data = raw.slice(12);
+      const iv = raw.slice(0,12), data = raw.slice(12);
       const key = await getKey(location.host);
       const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, data);
       return JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
     }
-
     async function cacheSave(cfg){ localStorage.setItem(LS_KEY, await encryptJSON(cfg)); }
     async function cacheLoad(){ const v = localStorage.getItem(LS_KEY); if(!v) return null; try{ return await decryptJSON(v) }catch{ return null } }
-    function cacheClear(){ localStorage.removeItem(LS_KEY) }
 
-    // ================== KONFİQ + STATE ==================
+    /* ================== KONFİQ / STATE ================== */
     let CONFIG = { owner:'', repo:'', path:'base.json', branch:'main', token:'' };
-    let FILE_SHA = null; // GitHub faylının son sha-sı
+    let FILE_SHA = null; // GitHub contents SHA
+    let DEFAULT_BRANCH = 'main';
 
     const statusBadge = document.getElementById('statusBadge');
     const notice = document.getElementById('notice');
@@ -184,18 +174,16 @@
     }
 
     authBtn.onclick = async ()=>{
-      // Modalı aç və local cache-dən doldur
       const data = await cacheLoad();
       if(data){
-        document.getElementById('ghOwner').value = data.owner||'';
-        document.getElementById('ghRepo').value  = data.repo||'';
-        document.getElementById('ghPath').value  = data.path||'base.json';
-        document.getElementById('ghBranch').value= data.branch||'main';
-        document.getElementById('ghToken').value = data.token||'';
+        document.getElementById('ghOwner').value  = data.owner||'';
+        document.getElementById('ghRepo').value   = data.repo||'';
+        document.getElementById('ghPath').value   = data.path||'base.json';
+        document.getElementById('ghBranch').value = data.branch||'main';
+        document.getElementById('ghToken').value  = data.token||'';
       }
       tokenModal.showModal();
     };
-
     document.getElementById('saveToken').onclick = async (e)=>{
       e.preventDefault();
       CONFIG.owner  = document.getElementById('ghOwner').value.trim();
@@ -204,49 +192,112 @@
       CONFIG.branch = document.getElementById('ghBranch').value.trim()||'main';
       CONFIG.token  = document.getElementById('ghToken').value.trim();
       if(!CONFIG.owner||!CONFIG.repo||!CONFIG.token){ alert('Owner, repo və token tələb olunur.'); return; }
-      await cacheSave(CONFIG); // şifrəli saxla
-      setMode(true);
-      tokenModal.close();
+      await cacheSave(CONFIG); setMode(true); tokenModal.close();
       await ghSyncInit();
     };
+    refreshBtn.onclick = async ()=>{ await ghLoad(true); await render(); };
 
-    refreshBtn.onclick = async ()=>{ await ghLoad(); await render(); };
-
-    // ================== GITHUB API HELPERS ==================
+    /* ================== GITHUB HELPERS ================== */
     const API = {
-      base(owner,repo){ return `https://api.github.com/repos/${owner}/${repo}`; },
-      contents(owner,repo,path){ return `${API.base(owner,repo)}/contents/${encodeURIComponent(path)}`; }
+      base(o,r){ return `https://api.github.com/repos/${o}/${r}`; },
+      repo(o,r){ return API.base(o,r); },
+      contents(o,r,p){ return `${API.base(o,r)}/contents/${encodeURIComponent(p)}`; }
     };
     function b64e(str){ return btoa(unescape(encodeURIComponent(str))) }
     function b64d(str){ return decodeURIComponent(escape(atob(str))) }
 
-    async function ghLoad(){
-      const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path) + `?ref=${encodeURIComponent(CONFIG.branch)}`;
-      const r = await fetch(url, { headers: { 'Accept':'application/vnd.github+json' } });
-      if(r.status===404){ FILE_SHA=null; STORE={}; return; }
-      if(!r.ok) throw new Error('GitHub read_failed');
-      const data = await r.json(); FILE_SHA = data.sha || null;
-      const decoded = data.content ? b64d(data.content.replace(/\n/g,'')) : '{}';
-      try{ STORE = JSON.parse(decoded||'{}'); }catch{ STORE = {}; }
+    // Repo default branch-ı öyrən (branch səhvdirsə bərpa edək)
+    async function ghFetchDefaultBranch(){
+      const r = await fetch(API.repo(CONFIG.owner, CONFIG.repo), {
+        headers: CONFIG.token ? {Authorization:`Bearer ${CONFIG.token}`} : {}
+      });
+      if(!r.ok) throw new Error('repo_meta_failed');
+      const j = await r.json();
+      DEFAULT_BRANCH = j.default_branch || 'main';
+      if(!CONFIG.branch) CONFIG.branch = DEFAULT_BRANCH;
+      return DEFAULT_BRANCH;
     }
 
+    // Oxu: token varsa auth header əlavə et (rate limitdən yayınmaq üçün)
+    async function ghLoad(force=false){
+      if(!CONFIG.owner || !CONFIG.repo) return;
+      try{
+        if(force) FILE_SHA=null; // təmiz oxu
+        // Branch düzgün olmasa avtomatik düzəlt
+        await ghFetchDefaultBranch().catch(()=>{});
+        const branch = CONFIG.branch || DEFAULT_BRANCH;
+
+        const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path) + `?ref=${encodeURIComponent(branch)}`;
+        const headers = { 'Accept':'application/vnd.github+json' };
+        if(CONFIG.token) headers.Authorization = `Bearer ${CONFIG.token}`;
+        const r = await fetch(url, { headers });
+
+        if(r.status === 404){
+          FILE_SHA = null; STORE = {}; // fayl hələ yoxdur — boş store
+          return;
+        }
+        if(!r.ok){
+          // 403 (rate limit) və s. hallarda token ilə təkrar cəhd edək
+          if(!CONFIG.token){
+            throw new Error('read_failed_no_token');
+          }else{
+            const txt = await r.text().catch(()=> ''); throw new Error('read_failed: '+txt);
+          }
+        }
+        const data = await r.json();
+        FILE_SHA = data.sha || null;
+        const decoded = data.content ? b64d(data.content.replace(/\n/g,'')) : '{}';
+        try{ STORE = JSON.parse(decoded||'{}'); }catch{ STORE = {}; }
+      }catch(e){
+        console.error('ghLoad error', e);
+        alert('GitHub-dan oxuma alınmadı. Parametrləri yoxla.');
+      }
+    }
+
+    // Yaz: fayl yoxdursa sha göndərmədən PUT → avtomatik YARANIR
     async function ghSave(obj, message='update plans'){
       if(!CONFIG.token) throw new Error('no_token');
+      // branch yanlış ola bilər: əvvəlcə dəqiqləşdir
+      await ghFetchDefaultBranch().catch(()=>{});
+      const branch = CONFIG.branch || DEFAULT_BRANCH;
+
       const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path);
-      const body = { message, content: b64e(JSON.stringify(obj, null, 2)), branch: CONFIG.branch };
+      const body = { message, content: b64e(JSON.stringify(obj,null,2)), branch };
       if(FILE_SHA) body.sha = FILE_SHA;
-      const r = await fetch(url, { method:'PUT', headers:{ 'Accept':'application/vnd.github+json', 'Content-Type':'application/json', 'Authorization':`Bearer ${CONFIG.token}` }, body: JSON.stringify(body) });
-      if(!r.ok){ const txt=await r.text().catch(()=>""); throw new Error('GitHub write_failed: '+txt); }
-      const out = await r.json(); FILE_SHA = out.content?.sha || FILE_SHA; return true;
+
+      const r = await fetch(url, {
+        method:'PUT',
+        headers:{
+          'Accept':'application/vnd.github+json',
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${CONFIG.token}`
+        },
+        body: JSON.stringify(body)
+      });
+      if(!r.ok){
+        const txt=await r.text().catch(()=> ''); throw new Error('GitHub write_failed: '+txt);
+      }
+      const out = await r.json();
+      FILE_SHA = out.content?.sha || FILE_SHA;
+      return true;
     }
 
-    // ================== TARİX/STATE/UI ==================
+    /* ================== TARİX / UI ================== */
+    function toISODate(d){ const x=new Date(d); x.setHours(0,0,0,0); return x }
+    function getISOWeekDate(d){ d=toISODate(d); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day+3);
+      const thu=new Date(d); const firstThu=new Date(thu.getFullYear(),0,4);
+      const week=1+Math.round(((thu-firstThu)/86400000)/7); return {year:thu.getFullYear(), week} }
+    function startOfISOWeek(y,w){ const s=new Date(Date.UTC(y,0,4+(w-1)*7)); const day=s.getUTCDay()||7; const m=new Date(s);
+      m.setUTCDate(s.getUTCDate()-day+1); return new Date(m.getFullYear(),m.getMonth(),m.getDate()) }
+    function addDays(date,n){ const d=new Date(date); d.setDate(d.getDate()+n); return d }
+    function fmtDate(d){ return d.toLocaleDateString('az-AZ',{day:'2-digit',month:'long'}) }
+    const WEEKDAYS=['Bazar ertəsi','Çərşənbə axşamı','Çərşənbə','Cümə axşamı','Cümə','Şənbə','Bazar'];
+
     function keyFor(y,w){ return `${y}-W${String(w).padStart(2,'0')}` }
     function readWeekObj(y,w){ return STORE[keyFor(y,w)] || {} }
     function writeWeekObj(y,w,weekData){ STORE[keyFor(y,w)] = weekData }
 
-    let STORE = {}; // RAM
-    let current = getISOWeekDate(new Date());
+    let STORE = {}; let current = getISOWeekDate(new Date());
 
     const track = document.getElementById('track');
     const weekLabel = document.getElementById('weekLabel');
@@ -264,9 +315,10 @@
     track.addEventListener('wheel',(e)=>{ if(Math.abs(e.deltaX)<Math.abs(e.deltaY)) return; e.preventDefault(); track.scrollLeft+=e.deltaX },{passive:false});
     document.addEventListener('keydown',(e)=>{ if(e.key==='ArrowLeft') slide(-1); if(e.key==='ArrowRight') slide(1); });
 
-    async function ghSyncInit(){ try{ await ghLoad(); await render(); }catch(e){ console.error(e); alert('GitHub-dan oxuma alınmadı. Parametrləri yoxla.'); } }
+    async function ghSyncInit(){ await ghLoad(true); await render(); }
 
-    async function shiftWeek(delta){ const monday=startOfISOWeek(current.year,current.week); const nextMon=addDays(monday,delta*7); current=getISOWeekDate(nextMon); await render() }
+    async function shiftWeek(delta){ const monday=startOfISOWeek(current.year,current.week); const nextMon=addDays(monday,delta*7);
+      current=getISOWeekDate(nextMon); await render() }
 
     async function render(){
       const monday=startOfISOWeek(current.year,current.week);
@@ -281,7 +333,7 @@
         dayEl.innerHTML=`
           <div class="day-header">
             <div>
-              <h3>${['Bazar ertəsi','Çərşənbə axşamı','Çərşənbə','Cümə axşamı','Cümə','Şənbə','Bazar'][i]}</h3>
+              <h3>${WEEKDAYS[i]}</h3>
               <div class="date">${fmtDate(dayDate)}</div>
             </div>
             <button class="btn" data-action="toggle-add" aria-label="Plan əlavə et">+ Plan</button>
@@ -307,7 +359,6 @@
           </div>`;
         track.appendChild(dayEl);
       }
-
       attachHandlers(); requestAnimationFrame(()=>scrollToCard(0));
     }
 
@@ -318,52 +369,57 @@
           const dayIndex=Number(day.dataset.dayIndex);
           if(action==='toggle-add') return toggleAdd(day);
           if(action==='cancel') return toggleAdd(day,true);
+
           if(action==='add'){
             if(!CONFIG.token){ alert('GitHub ayarlarını doldur.'); return; }
             const input=day.querySelector('.add-inline input'); const txt=input.value.trim(); if(!txt) return;
             const data=readWeekObj(current.year,current.week); if(!Array.isArray(data[dayIndex])) data[dayIndex]=[];
             data[dayIndex].push({text:txt,done:false,ts:Date.now()}); writeWeekObj(current.year,current.week,data);
-            try{ await ghSave(STORE,'add task'); await ghLoad(); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
+            try{ await ghSave(STORE,'add task'); await ghLoad(true); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
             return;
           }
           const idx=getTaskIndex(e.target); if(idx<0) return;
+
           if(action==='toggle-done'){
             if(!CONFIG.token){ alert('GitHub ayarlarını doldur.'); return; }
             const data=readWeekObj(current.year,current.week); data[dayIndex][idx].done=!data[dayIndex][idx].done; writeWeekObj(current.year,current.week,data);
-            try{ await ghSave(STORE,'toggle done'); await ghLoad(); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
+            try{ await ghSave(STORE,'toggle done'); await ghLoad(true); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
             return;
           }
           if(action==='delete'){
             if(!CONFIG.token){ alert('GitHub ayarlarını doldur.'); return; }
             const data=readWeekObj(current.year,current.week); data[dayIndex].splice(idx,1); writeWeekObj(current.year,current.week,data);
-            try{ await ghSave(STORE,'delete task'); await ghLoad(); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
+            try{ await ghSave(STORE,'delete task'); await ghLoad(true); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
             return;
           }
           if(action==='edit'){
             if(!CONFIG.token){ alert('GitHub ayarlarını doldur.'); return; }
             const data=readWeekObj(current.year,current.week); const t=data[dayIndex][idx];
             const nv=prompt('Yeni mətni daxil edin:', t.text); if(nv===null) return; const v=nv.trim(); if(!v) return; t.text=v; writeWeekObj(current.year,current.week,data);
-            try{ await ghSave(STORE,'edit task'); await ghLoad(); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
+            try{ await ghSave(STORE,'edit task'); await ghLoad(true); await render(); }catch(err){ alert('Yazma xətası: '+err.message) }
             return;
           }
         });
       });
     }
 
-    function toggleAdd(dayEl,close=false){ const box=dayEl.querySelector('.add-inline'); if(close){ box.hidden=true; return } box.hidden=!box.hidden; if(!box.hidden){ const inp=box.querySelector('input'); inp.value=''; inp.focus() } }
+    function toggleAdd(dayEl,close=false){ const box=dayEl.querySelector('.add-inline'); if(close){ box.hidden=true; return }
+      box.hidden=!box.hidden; if(!box.hidden){ const inp=box.querySelector('input'); inp.value=''; inp.focus() } }
     function getTaskIndex(el){ return Number(el.closest('.task')?.dataset?.idx||-1) }
 
-    // Slider helpers
-    function getCardWidth(){ const first=track.querySelector('.day'); if(!first) return 360; const rect=first.getBoundingClientRect(); const gap=parseFloat(getComputedStyle(track).gap||12); return rect.width+gap }
+    // Slider
+    function getCardWidth(){ const first=track.querySelector('.day'); if(!first) return 360;
+      const rect=first.getBoundingClientRect(); const gap=parseFloat(getComputedStyle(track).gap||12);
+      return rect.width+gap }
     function scrollToCard(index){ const cardW=getCardWidth(); track.scrollTo({ left:index*cardW, behavior:'smooth' }) }
     function visibleIndex(){ const cardW=getCardWidth(); return Math.round(track.scrollLeft/cardW) }
     function slide(dir){ const next=Math.min(6,Math.max(0,visibleIndex()+dir)); scrollToCard(next) }
 
-    // Bootstrap: cache‑dən oxu → GitHub‑dan yüklə → render
+    // Bootstrap: cache → ghLoad → render
     (async function init(){
       const c = await cacheLoad();
-      if(c){ CONFIG = c; setMode(!!CONFIG.token); }
-      try{ if(CONFIG.owner && CONFIG.repo) await ghLoad(); }catch(e){ console.warn(e) }
+      if(c){ CONFIG=c; setMode(!!CONFIG.token); }
+      try{ if(CONFIG.owner && CONFIG.repo) await ghLoad(true); }catch(e){ console.warn(e) }
       await render();
     })();
   </script>
