@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Həftəlik Planlama — Front-Only (Global GitHub JSON)</title>
+  <style>
+    :root{ --card:#ffffff; --muted:#475569; --brand:#4f46e5; --ring:rgba(79,70,229,.25); --text:#0f172a; --border:#e5e7eb }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+      background:linear-gradient(135deg,#74ebd5 0%, #9face6 100%); padding:clamp(12px,2.5vw,24px);
+      display:flex; align-items:center; justify-content:center; color:var(--text) }
+    .app{ width:min(1200px,100%) }
+    .shell{ background:var(--card); border-radius:16px; box-shadow:0 20px 40px rgba(2,6,23,.15); overflow:hidden; border:1px solid var(--border) }
+
+    .topbar{ display:flex; gap:12px; align-items:center; justify-content:space-between;
+      padding:clamp(12px,2vw,18px); border-bottom:1px solid var(--border); flex-wrap:wrap }
+    .title{ font-weight:800; font-size:clamp(18px,2.4vw,24px); letter-spacing:.2px; display:flex; gap:8px; align-items:center }
+    .controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+    .btn{ appearance:none; border:1px solid var(--border); background:#fff; padding:10px 12px; border-radius:10px;
+      cursor:pointer; font-weight:600; line-height:1; transition:.2s box-shadow,.2s transform }
+    .btn:hover{ box-shadow:0 0 0 4px var(--ring) }
+    .btn:active{ transform:translateY(1px) }
+    .btn.primary{ background:var(--brand); border-color:var(--brand); color:#fff }
+    .btn.ghost{ background:transparent }
+    .btn.icon{ width:40px; height:40px; display:grid; place-items:center; padding:0; border-radius:999px }
+    .week-meta{ display:flex; gap:10px; align-items:center; color:var(--muted); font-weight:600 }
+    .badge { padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border);
+      background:#f8fafc; color:#0b3b69 }
+
+    .notice{ padding:10px 14px; margin:12px 16px 0; border:1px dashed var(--border); border-radius:10px;
+      color:#0b3b69; background:#f0f9ff; display:flex; gap:8px; align-items:center }
+
+    .slider{ position:relative }
+    .track{ display:flex; gap:12px; padding:clamp(10px,1.8vw,18px); overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch }
+    .track::-webkit-scrollbar{ height:10px } .track::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:999px }
+    .nav{ position:absolute; top:50%; transform:translateY(-50%); z-index:5 }
+    .nav.left{ left:8px } .nav.right{ right:8px }
+    .nav .btn{ border-radius:999px; padding:10px 12px; box-shadow:0 6px 20px rgba(2,6,23,.15); backdrop-filter:blur(6px) }
+
+    .day{ border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column;
+      min-height:220px; min-width:min(92vw,360px); scroll-snap-align:start; background:#fff }
+    @media (min-width:640px){ .day{ min-width:360px } }
+    @media (min-width:1024px){ .day{ min-width:380px } }
+    .day-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px }
+    .day h3{ margin:0; font-size:clamp(14px,1.5vw,16px); color:#111827; font-weight:800 }
+    .day .date{ color:var(--muted); font-size:12px; font-weight:600 }
+    .tasks{ display:flex; flex-direction:column; gap:8px; margin-top:6px; flex:1; min-height:48px }
+    .task{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px; border:1px dashed var(--border);
+      border-radius:10px; background:#fff; min-height:40px }
+    .task.done{ opacity:.9; text-decoration:line-through; background:#f0fdf4; border-style:solid; border-color:#bbf7d0 }
+    .task-left{ display:flex; align-items:center; gap:8px; min-width:0 }
+    .task input[type="checkbox"]{ width:18px; height:18px }
+    .task-title{ font-size:14px; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100% }
+    .task-actions{ display:flex; gap:6px; flex-wrap:wrap }
+    .add-inline{ display:flex; gap:6px; margin-top:8px; align-items:center }
+    .add-inline input{ flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px }
+    .add-inline button{ padding:10px 12px }
+    .empty{ color:var(--muted); font-size:13px; text-align:center; padding:12px; border:1px dashed var(--border); border-radius:10px }
+    .footer{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
+      color:var(--muted); font-size:12px; gap:8px; flex-wrap:wrap }
+    .kbd{ padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:#f8fafc; font-size:12px }
+
+    dialog.modal{ border:none; padding:0; max-width:min(560px,92vw) }
+    dialog.modal::backdrop{ background:rgba(15,23,42,.35) }
+    .modal-card{ background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,.2) }
+    .modal-head{ padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center }
+    .modal-body{ padding:16px; display:grid; gap:10px }
+    .input{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; width:100% }
+    .help{ font-size:12px; color:#64748b }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell" aria-label="Həftəlik planlama tətbiqi">
+      <div class="topbar">
+        <div class="title" aria-live="polite">📅 Həftəlik Planlama</div>
+        <div class="controls">
+          <button class="btn" id="prevWeek" aria-label="Əvvəlki həftə">← Əvvəlki</button>
+          <div class="week-meta"><span id="weekLabel">—</span></div>
+          <button class="btn" id="nextWeek" aria-label="Növbəti həftə">Növbəti →</button>
+          <button class="btn primary" id="todayBtn">Bu həftə</button>
+          <span id="statusBadge" class="badge" title="Yaddaş rejimi">Read-only</span>
+          <button class="btn ghost" id="authBtn" title="GitHub token daxil et">GitHub Token</button>
+        </div>
+      </div>
+
+      <div id="notice" class="notice" hidden>
+        <strong>ℹ️</strong>
+        <span>Hazırda <b>read-only</b> rejimdədir. Yazmaq üçün <b>GitHub Token</b> daxil et.
+          Token yalnız bu səhifə sessiyasında RAM-da saxlanır (lokal yaddaş YOXDUR).</span>
+      </div>
+
+      <div class="slider">
+        <div class="nav left"><button class="btn icon" id="slideLeft" title="Geri (◀)">◀</button></div>
+        <div class="nav right"><button class="btn icon" id="slideRight" title="İrəli (▶)">▶</button></div>
+        <div class="track" id="track" aria-label="Həftənin günləri" tabindex="0"></div>
+      </div>
+
+      <div class="footer">
+        <span>Məlumatlar <b>GitHub</b>-dakı <code>base.json</code> faylında saxlanılır — qlobal, cihazlararası, backend-siz.</span>
+        <span>Klaviatura: <span class="kbd">◀</span>/<span class="kbd">▶</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token modal -->
+  <dialog id="tokenModal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong>GitHub Token</strong>
+        <button class="btn" data-close>Bağla</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <div class="help">Owner (istifadəçi və ya təşkilat)</div>
+          <input id="ghOwner" class="input" placeholder="misal: camalcavadov" />
+        </label>
+        <label>
+          <div class="help">Repo (publik)</div>
+          <input id="ghRepo" class="input" placeholder="misal: weekly-planner-data" />
+        </label>
+        <label>
+          <div class="help">Fayl yolu</div>
+          <input id="ghPath" class="input" value="base.json" />
+        </label>
+        <label>
+          <div class="help">Branch</div>
+          <input id="ghBranch" class="input" value="main" />
+        </label>
+        <label>
+          <div class="help">Personal Access Token (scope: <code>public_repo</code> kifayətdir)</div>
+          <input id="ghToken" class="input" type="password" placeholder="ghp_..." />
+        </label>
+        <div class="help">Token və parametrlər <b>saxlanmır</b>. RAM-da qalır, səhifəni bağlayanda silinir.</div>
+        <div style="display:flex; gap:8px; margin-top:6px">
+          <button id="saveToken" class="btn primary">Yadda saxla</button>
+          <button data-close class="btn">Ləğv et</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // ================== KONFİQURASİYA (default) ==================
+    const CONFIG = {
+      owner: "",        // Modal ilə doldurulacaq
+      repo:  "",        // Modal ilə doldurulacaq
+      path:  "base.json",
+      branch:"main",
+    };
+    let GH_TOKEN = null;        // RAM-da saxlanılır
+    let FILE_SHA = null;        // son commit üçün lazımdır (update zamanı)
+
+    // ================== TARİX / HƏFTƏ UTİLLƏRİ ==================
+    function toISODate(d){ const x=new Date(d); x.setHours(0,0,0,0); return x }
+    function getISOWeekDate(d){
+      d=toISODate(d);
+      const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day+3);
+      const thu=new Date(d); const firstThu=new Date(thu.getFullYear(),0,4);
+      const week=1+Math.round(((thu-firstThu)/86400000)/7);
+      return {year:thu.getFullYear(), week}
+    }
+    function startOfISOWeek(y,w){ const simple=new Date(Date.UTC(y,0,4+(w-1)*7));
+      const day=simple.getUTCDay()||7; const mon=new Date(simple);
+      mon.setUTCDate(simple.getUTCDate()-day+1);
+      return new Date(mon.getFullYear(),mon.getMonth(),mon.getDate())
+    }
+    function addDays(date,n){ const d=new Date(date); d.setDate(d.getDate()+n); return d }
+    function fmtDate(d){ return d.toLocaleDateString('az-AZ',{day:'2-digit',month:'long'}) }
+    const WEEKDAYS=['Bazar ertəsi','Çərşənbə axşamı','Çərşənbə','Cümə axşamı','Cümə','Şənbə','Bazar'];
+
+    // ================== GITHUB API HELPERS ==================
+    const API = {
+      base(owner,repo){ return `https://api.github.com/repos/${owner}/${repo}`; },
+      contents(owner,repo,path){ return `${API.base(owner,repo)}/contents/${encodeURIComponent(path)}`; }
+    };
+    function b64e(str){ return btoa(unescape(encodeURIComponent(str))) }
+    function b64d(str){ return decodeURIComponent(escape(atob(str))) }
+
+    async function ghGetJSON(){
+      // contents API: file content + sha
+      const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path) + `?ref=${encodeURIComponent(CONFIG.branch)}`;
+      const r = await fetch(url, { headers: { "Accept":"application/vnd.github+json" }});
+      if(r.status===404){ FILE_SHA=null; return {}; } // fayl hələ yoxdursa
+      if(!r.ok) throw new Error("GitHub read_failed");
+      const data = await r.json();
+      FILE_SHA = data.sha || null;
+      const decoded = data.content ? b64d(data.content.replace(/\n/g,'')) : "{}";
+      try{ return JSON.parse(decoded||"{}"); }catch{ return {}; }
+    }
+
+    async function ghPutJSON(obj, message="update plans"){
+      if(!GH_TOKEN) throw new Error("no_token");
+      const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path);
+      const body = {
+        message,
+        content: b64e(JSON.stringify(obj, null, 2)),
+        branch: CONFIG.branch
+      };
+      if(FILE_SHA) body.sha = FILE_SHA;
+
+      const r = await fetch(url, {
+        method:"PUT",
+        headers:{
+          "Accept":"application/vnd.github+json",
+          "Content-Type":"application/json",
+          "Authorization": `Bearer ${GH_TOKEN}`
+        },
+        body: JSON.stringify(body)
+      });
+      if(!r.ok){
+        const txt = await r.text().catch(()=> "");
+        throw new Error("GitHub write_failed: " + txt);
+      }
+      const out = await r.json();
+      FILE_SHA = out.content?.sha || FILE_SHA;
+      return true;
+    }
+
+    // ================== APP STATE ==================
+    let STORE = {}; // bütün həftələr (RAM)
+    let current = getISOWeekDate(new Date()); // açılışda cari həftə
+
+    const track = document.getElementById('track');
+    const weekLabel = document.getElementById('weekLabel');
+    const prevWeekBtn = document.getElementById('prevWeek');
+    const nextWeekBtn = document.getElementById('nextWeek');
+    const todayBtn = document.getElementById('todayBtn');
+    const slideLeftBtn = document.getElementById('slideLeft');
+    const slideRightBtn = document.getElementById('slideRight');
+    const statusBadge = document.getElementById('statusBadge');
+    const notice = document.getElementById('notice');
+
+    prevWeekBtn.onclick = ()=> shiftWeek(-1);
+    nextWeekBtn.onclick = ()=> shiftWeek(1);
+    todayBtn.onclick   = ()=> { current = getISOWeekDate(new Date()); render(); };
+    slideLeftBtn.onclick  = ()=> slide(-1);
+    slideRightBtn.onclick = ()=> slide(1);
+    track.addEventListener('wheel',(e)=>{ if(Math.abs(e.deltaX)<Math.abs(e.deltaY)) return; e.preventDefault(); track.scrollLeft+=e.deltaX },{passive:false});
+    document.addEventListener('keydown',(e)=>{ if(e.key==='ArrowLeft') slide(-1); if(e.key==='ArrowRight') slide(1); });
+
+    function setMode(writeable){
+      statusBadge.textContent = writeable ? "Write-enabled" : "Read-only";
+      statusBadge.style.color = writeable ? "#065f46" : "#0b3b69";
+      statusBadge.style.background = writeable ? "#ecfdf5" : "#f0f9ff";
+      notice.hidden = writeable;
+    }
+
+    function keyFor(y,w){ return `${y}-W${String(w).padStart(2,'0')}` }
+    function readWeekObj(y,w){ return STORE[keyFor(y,w)] || {} }
+    function writeWeekObj(y,w,weekData){ STORE[keyFor(y,w)] = weekData }
+
+    async function persist(message="update plans"){
+      await ghPutJSON(STORE, message);
+    }
+
+    async function bootstrap(){
+      // Əgər URL paramlarında konfiq var idisə, yüklə
+      try{
+        const p = new URLSearchParams(location.search);
+        if(p.has("owner"))  CONFIG.owner  = p.get("owner") || CONFIG.owner;
+        if(p.has("repo"))   CONFIG.repo   = p.get("repo")  || CONFIG.repo;
+        if(p.has("path"))   CONFIG.path   = p.get("path")  || CONFIG.path;
+        if(p.has("branch")) CONFIG.branch = p.get("branch")|| CONFIG.branch;
+      }catch{}
+      if(!CONFIG.owner || !CONFIG.repo){ setMode(false); notice.hidden=false; }
+      STORE = await ghGetJSON().catch(()=> ({}));
+      render();
+    }
+
+    async function shiftWeek(delta){
+      const monday = startOfISOWeek(current.year, current.week);
+      const nextMon = addDays(monday, delta*7);
+      current = getISOWeekDate(nextMon);
+      render();
+    }
+
+    function render(){
+      const monday = startOfISOWeek(current.year, current.week);
+      weekLabel.textContent = `${current.year} · ${current.week}-ci həftə (${fmtDate(monday)} – ${fmtDate(addDays(monday,6))})`;
+      track.innerHTML = '';
+      const weekData = readWeekObj(current.year, current.week);
+
+      for(let i=0;i<7;i++){
+        const dayDate = addDays(monday, i);
+        const tasks = Array.isArray(weekData[i]) ? weekData[i] : [];
+        const dayEl = document.createElement('div'); dayEl.className = 'day'; dayEl.dataset.dayIndex = i;
+        dayEl.innerHTML = `
+          <div class="day-header">
+            <div>
+              <h3>${WEEKDAYS[i]}</h3>
+              <div class="date">${fmtDate(dayDate)}</div>
+            </div>
+            <button class="btn" data-action="toggle-add" aria-label="Plan əlavə et">+ Plan</button>
+          </div>
+          <div class="tasks" role="list">
+            ${tasks.length ? tasks.map((t,idx)=>`
+              <div class="task ${t.done?'done':''}" data-idx="${idx}" role="listitem">
+                <div class="task-left">
+                  <input type="checkbox" ${t.done?'checked':''} data-action="toggle-done" aria-label="Tamamlandı" />
+                  <div class="task-title" title="${t.text.replace(/"/g,'&quot;')}">${t.text}</div>
+                </div>
+                <div class="task-actions">
+                  <button class="btn" data-action="edit">Dəyiş</button>
+                  <button class="btn" data-action="delete">Sil</button>
+                </div>
+              </div>
+            `).join('') : `<div class="empty">Heç bir plan yoxdur</div>`}
+          </div>
+          <div class="add-inline" hidden>
+            <input type="text" placeholder="Plan mətni..." aria-label="Plan mətni" />
+            <button class="btn primary" data-action="add">Əlavə et</button>
+            <button class="btn" data-action="cancel">Bağla</button>
+          </div>`;
+        track.appendChild(dayEl);
+      }
+      attachHandlers();
+      requestAnimationFrame(()=> scrollToCard(0));
+    }
+
+    function attachHandlers(){
+      track.querySelectorAll('.day').forEach(day => {
+        day.addEventListener('click', async (e)=>{
+          const action = e.target?.dataset?.action; if(!action) return; e.preventDefault();
+          const dayIndex = Number(day.dataset.dayIndex);
+          if(action==='toggle-add') return toggleAdd(day);
+          if(action==='cancel')    return toggleAdd(day, true);
+
+          if(action==='add' || action==='toggle-done' || action==='delete' || action==='edit'){
+            if(!GH_TOKEN){ alert("Yazmaq üçün GitHub token daxil et."); return; }
+          }
+
+          if(action==='add'){
+            const input = day.querySelector('.add-inline input');
+            const txt = input.value.trim(); if(!txt) return;
+            const data = readWeekObj(current.year,current.week); if(!Array.isArray(data[dayIndex])) data[dayIndex]=[];
+            data[dayIndex].push({ text:txt, done:false, ts:Date.now() });
+            writeWeekObj(current.year,current.week,data);
+            await persist("add task"); return render();
+          }
+          const idx = getTaskIndex(e.target); if(idx<0) return;
+
+          if(action==='toggle-done'){
+            const data = readWeekObj(current.year,current.week);
+            data[dayIndex][idx].done = !data[dayIndex][idx].done;
+            writeWeekObj(current.year,current.week,data);
+            await persist("toggle done"); return render();
+          }
+          if(action==='delete'){
+            const data = readWeekObj(current.year,current.week);
+            data[dayIndex].splice(idx,1);
+            writeWeekObj(current.year,current.week,data);
+            await persist("delete task"); return render();
+          }
+          if(action==='edit'){
+            const data = readWeekObj(current.year,current.week);
+            const t = data[dayIndex][idx];
+            const nv = prompt('Yeni mətni daxil edin:', t.text);
+            if(nv===null) return; const v = nv.trim(); if(!v) return;
+            t.text = v; writeWeekObj(current.year,current.week,data);
+            await persist("edit task"); return render();
+          }
+        });
+      });
+    }
+
+    function toggleAdd(dayEl, close=false){
+      const box = dayEl.querySelector('.add-inline');
+      if(close){ box.hidden = true; return }
+      box.hidden = !box.hidden;
+      if(!box.hidden){ const inp = box.querySelector('input'); inp.value=''; inp.focus() }
+    }
+    function getTaskIndex(el){ return Number(el.closest('.task')?.dataset?.idx || -1) }
+
+    // Slider
+    function getCardWidth(){ const first=track.querySelector('.day'); if(!first) return 360;
+      const rect=first.getBoundingClientRect(); const gap=parseFloat(getComputedStyle(track).gap||12);
+      return rect.width+gap }
+    function scrollToCard(index){ const cardW=getCardWidth(); track.scrollTo({ left:index*cardW, behavior:'smooth' }) }
+    function visibleIndex(){ const cardW=getCardWidth(); return Math.round(track.scrollLeft/cardW) }
+    function slide(dir){ const next=Math.min(6,Math.max(0,visibleIndex()+dir)); scrollToCard(next) }
+
+    // ================== TOKEN MODAL ==================
+    const tokenModal = document.getElementById('tokenModal');
+    const authBtn = document.getElementById('authBtn');
+    document.querySelectorAll('[data-close]').forEach(b=> b.addEventListener('click', e=> e.target.closest('dialog').close()));
+    authBtn.onclick = ()=> tokenModal.showModal();
+    document.getElementById('saveToken').onclick = ()=>{
+      const owner  = document.getElementById('ghOwner').value.trim();
+      const repo   = document.getElementById('ghRepo').value.trim();
+      const path   = document.getElementById('ghPath').value.trim() || "base.json";
+      const branch = document.getElementById('ghBranch').value.trim() || "main";
+      const token  = document.getElementById('ghToken').value.trim();
+      if(!owner||!repo||!token){ alert("Owner, repo və token tələb olunur."); return; }
+      CONFIG.owner=owner; CONFIG.repo=repo; CONFIG.path=path; CONFIG.branch=branch; GH_TOKEN=token;
+      setMode(true);
+      tokenModal.close();
+      // Fayl yoxdursa yarada bilmək üçün dərhal sync etməyə cəhd
+      ghPutJSON(STORE, "init if empty").catch(()=>{});
+    };
+
+    // Başlanğıc
+    setMode(false);
+    bootstrap();
+  </script>
+</body>
+</html>
