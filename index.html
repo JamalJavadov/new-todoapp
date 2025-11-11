@@ -56,7 +56,7 @@
     .add-inline button{ padding:10px 12px }
     .empty{ color:var(--muted); font-size:13px; text-align:center; padding:12px; border:1px dashed var(--border); border-radius:10px }
     .footer{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
-      color:var(--muted); font-size:12px; gap:8px; flex-wrap:wrap }
+      color:#muted; font-size:12px; gap:8px; flex-wrap:wrap }
     .kbd{ padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:#f8fafc; font-size:12px }
 
     dialog.modal{ border:none; padding:0; max-width:min(560px,92vw) }
@@ -96,7 +96,7 @@
       </div>
 
       <div class="footer">
-        <span>Məlumatlar <b>GitHub</b>-dakı <code>base.json</code> faylında saxlanılır — qlobal, cihazlararası, backend-siz. Konfiqurasiya <b>şifrəli local cache</b>-də bir dəfə saxlanılır.</span>
+        <span>Məlumatlar <b>GitHub</b>-dakı <code>base.json</code> faylında saxlanılır — qlobal, cihazlararası, backend-siz. Konfiqurasiya <b>şifrəli local cache</b>-də saxlanılır.</span>
         <span>Klaviatura: <span class="kbd">◀</span>/<span class="kbd">▶</span></span>
       </div>
     </div>
@@ -114,7 +114,7 @@
         <label><div class="help">Repo (publik)</div><input id="ghRepo" class="input" required /></label>
         <label><div class="help">Fayl yolu</div><input id="ghPath" class="input" value="base.json" required /></label>
         <label><div class="help">Branch</div><input id="ghBranch" class="input" value="main" required /></label>
-        <label><div class="help">Personal Access Token (scope: <code>public_repo</code> və ya özəl repoda <code>repo</code>)</div><input id="ghToken" class="input" type="password" placeholder="ghp_..." required /></label>
+        <label><div class="help">Personal Access Token (scope: <code>public_repo</code> / özəl repoda <code>repo</code>)</div><input id="ghToken" class="input" type="password" placeholder="ghp_..." required /></label>
         <div class="help">Ayarlar <b>şifrələnmiş</b> halda localStorage-də saxlanır; istənilən vaxt təmizləyə bilərsiniz.</div>
         <div style="display:flex; gap:8px; margin-top:6px">
           <button id="saveToken" class="btn primary">Yadda saxla</button>
@@ -125,7 +125,7 @@
   </dialog>
 
   <script>
-    /* ================== ŞİFRƏLİ LOCAL CACHE ================== */
+    /* ========== ŞİFRƏLİ LOCAL CACHE ========== */
     const LS_KEY = 'planner.enc.v1';
     const ENC_SALT = 'planner-static-salt-v1';
     async function getKey(pass){
@@ -155,9 +155,9 @@
     async function cacheSave(cfg){ localStorage.setItem(LS_KEY, await encryptJSON(cfg)); }
     async function cacheLoad(){ const v = localStorage.getItem(LS_KEY); if(!v) return null; try{ return await decryptJSON(v) }catch{ return null } }
 
-    /* ================== KONFİQ / STATE ================== */
-    let CONFIG = { owner:'', repo:'', path:'base.json', branch:'main', token:'' };
-    let FILE_SHA = null; // GitHub contents SHA
+    /* ========== KONFİQ / STATE ========== */
+    let CONFIG = { owner:'', repo:'', path:'base.json', branch:'', token:'' };
+    let FILE_SHA = null;
     let DEFAULT_BRANCH = 'main';
 
     const statusBadge = document.getElementById('statusBadge');
@@ -189,7 +189,7 @@
       CONFIG.owner  = document.getElementById('ghOwner').value.trim();
       CONFIG.repo   = document.getElementById('ghRepo').value.trim();
       CONFIG.path   = document.getElementById('ghPath').value.trim()||'base.json';
-      CONFIG.branch = document.getElementById('ghBranch').value.trim()||'main';
+      CONFIG.branch = document.getElementById('ghBranch').value.trim()||'';
       CONFIG.token  = document.getElementById('ghToken').value.trim();
       if(!CONFIG.owner||!CONFIG.repo||!CONFIG.token){ alert('Owner, repo və token tələb olunur.'); return; }
       await cacheSave(CONFIG); setMode(true); tokenModal.close();
@@ -197,20 +197,20 @@
     };
     refreshBtn.onclick = async ()=>{ await ghLoad(true); await render(); };
 
-    /* ================== GITHUB HELPERS ================== */
+    /* ========== GITHUB HELPERS ========== */
     const API = {
-      base(o,r){ return `https://api.github.com/repos/${o}/${r}`; },
-      repo(o,r){ return API.base(o,r); },
-      contents(o,r,p){ return `${API.base(o,r)}/contents/${encodeURIComponent(p)}`; }
+      base:o=>r=>`https://api.github.com/repos/${o}/${r}`,
+      repo(o,r){ return `https://api.github.com/repos/${o}/${r}`; },
+      contents(o,r,p){ return `${this.base(o)(r)}/contents/${encodeURIComponent(p)}`; }
     };
     function b64e(str){ return btoa(unescape(encodeURIComponent(str))) }
     function b64d(str){ return decodeURIComponent(escape(atob(str))) }
 
-    // Repo default branch-ı öyrən (branch səhvdirsə bərpa edək)
+    async function ghHeaders(){ const h = { 'Accept':'application/vnd.github+json' }; if(CONFIG.token) h.Authorization = `Bearer ${CONFIG.token}`; return h; }
+
+    // Repo default branch-ını öyrən və branch düzgün deyilsə onu istifadə et
     async function ghFetchDefaultBranch(){
-      const r = await fetch(API.repo(CONFIG.owner, CONFIG.repo), {
-        headers: CONFIG.token ? {Authorization:`Bearer ${CONFIG.token}`} : {}
-      });
+      const r = await fetch(API.repo(CONFIG.owner, CONFIG.repo), { headers: await ghHeaders() });
       if(!r.ok) throw new Error('repo_meta_failed');
       const j = await r.json();
       DEFAULT_BRANCH = j.default_branch || 'main';
@@ -218,32 +218,32 @@
       return DEFAULT_BRANCH;
     }
 
-    // Oxu: token varsa auth header əlavə et (rate limitdən yayınmaq üçün)
+    // Son SHA-nı gətir (yazmazdan və retry-dən əvvəl)
+    async function ghGetLatestSha(){
+      const branch = CONFIG.branch || DEFAULT_BRANCH || 'main';
+      const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path) + `?ref=${encodeURIComponent(branch)}`;
+      const r = await fetch(url, { headers: await ghHeaders() });
+      if(r.status === 404){ FILE_SHA = null; return null; }
+      if(!r.ok) throw new Error('preload_failed');
+      const data = await r.json();
+      FILE_SHA = data.sha || null;
+      return FILE_SHA;
+    }
+
+    // Oxu
     async function ghLoad(force=false){
       if(!CONFIG.owner || !CONFIG.repo) return;
       try{
-        if(force) FILE_SHA=null; // təmiz oxu
-        // Branch düzgün olmasa avtomatik düzəlt
+        if(force) FILE_SHA=null;
         await ghFetchDefaultBranch().catch(()=>{});
-        const branch = CONFIG.branch || DEFAULT_BRANCH;
+        const branch = CONFIG.branch || DEFAULT_BRANCH || 'main';
 
         const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path) + `?ref=${encodeURIComponent(branch)}`;
-        const headers = { 'Accept':'application/vnd.github+json' };
-        if(CONFIG.token) headers.Authorization = `Bearer ${CONFIG.token}`;
-        const r = await fetch(url, { headers });
+        const r = await fetch(url, { headers: await ghHeaders() });
 
-        if(r.status === 404){
-          FILE_SHA = null; STORE = {}; // fayl hələ yoxdur — boş store
-          return;
-        }
-        if(!r.ok){
-          // 403 (rate limit) və s. hallarda token ilə təkrar cəhd edək
-          if(!CONFIG.token){
-            throw new Error('read_failed_no_token');
-          }else{
-            const txt = await r.text().catch(()=> ''); throw new Error('read_failed: '+txt);
-          }
-        }
+        if(r.status === 404){ FILE_SHA = null; STORE = {}; return; }
+        if(!r.ok){ const txt=await r.text().catch(()=> ''); throw new Error('read_failed: '+txt); }
+
         const data = await r.json();
         FILE_SHA = data.sha || null;
         const decoded = data.content ? b64d(data.content.replace(/\n/g,'')) : '{}';
@@ -254,35 +254,45 @@
       }
     }
 
-    // Yaz: fayl yoxdursa sha göndərmədən PUT → avtomatik YARANIR
+    // Yaz (409 üçün retry ilə)
     async function ghSave(obj, message='update plans'){
       if(!CONFIG.token) throw new Error('no_token');
-      // branch yanlış ola bilər: əvvəlcə dəqiqləşdir
       await ghFetchDefaultBranch().catch(()=>{});
-      const branch = CONFIG.branch || DEFAULT_BRANCH;
+      const branch = CONFIG.branch || DEFAULT_BRANCH || 'main';
 
-      const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path);
-      const body = { message, content: b64e(JSON.stringify(obj,null,2)), branch };
-      if(FILE_SHA) body.sha = FILE_SHA;
+      // 1) SON SHA-nı həmişə əvvəlcə çək
+      await ghGetLatestSha().catch(()=>{ FILE_SHA=null; });
 
-      const r = await fetch(url, {
-        method:'PUT',
-        headers:{
-          'Accept':'application/vnd.github+json',
-          'Content-Type':'application/json',
-          'Authorization':`Bearer ${CONFIG.token}`
-        },
-        body: JSON.stringify(body)
-      });
+      async function putOnce(){
+        const url = API.contents(CONFIG.owner, CONFIG.repo, CONFIG.path);
+        const body = { message, content: b64e(JSON.stringify(obj,null,2)), branch };
+        if(FILE_SHA) body.sha = FILE_SHA;
+        const r = await fetch(url, {
+          method:'PUT',
+          headers:{ ...(await ghHeaders()), 'Content-Type':'application/json' },
+          body: JSON.stringify(body)
+        });
+        return r;
+      }
+
+      // İlk cəhd
+      let r = await putOnce();
+
+      // 409 halda: son SHA-nı yenidən çək, bir dəfə retry
+      if(r.status === 409){
+        await ghGetLatestSha().catch(()=>{ FILE_SHA=null; });
+        r = await putOnce();
+      }
+
       if(!r.ok){
-        const txt=await r.text().catch(()=> ''); throw new Error('GitHub write_failed: '+txt);
+        const txt = await r.text().catch(()=> ''); throw new Error('GitHub write_failed: '+txt);
       }
       const out = await r.json();
       FILE_SHA = out.content?.sha || FILE_SHA;
       return true;
     }
 
-    /* ================== TARİX / UI ================== */
+    /* ========== TARİX / UI ========== */
     function toISODate(d){ const x=new Date(d); x.setHours(0,0,0,0); return x }
     function getISOWeekDate(d){ d=toISODate(d); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day+3);
       const thu=new Date(d); const firstThu=new Date(thu.getFullYear(),0,4);
@@ -415,7 +425,7 @@
     function visibleIndex(){ const cardW=getCardWidth(); return Math.round(track.scrollLeft/cardW) }
     function slide(dir){ const next=Math.min(6,Math.max(0,visibleIndex()+dir)); scrollToCard(next) }
 
-    // Bootstrap: cache → ghLoad → render
+    // Bootstrap
     (async function init(){
       const c = await cacheLoad();
       if(c){ CONFIG=c; setMode(!!CONFIG.token); }
